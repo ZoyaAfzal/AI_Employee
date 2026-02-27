@@ -1,0 +1,4 @@
+Invoice #001
+Client: Test Client
+Amount: $500
+Date: 2026-02-25
