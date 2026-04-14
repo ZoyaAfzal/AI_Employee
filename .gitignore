@@ -1,0 +1,60 @@
+# Environment & Secrets
+.env
+.env.local
+.env.production
+credentials.json
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+dist/
+build/
+
+# UV
+.uv/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs (keep structure, ignore contents)
+AI_Employee_Vault/Logs/*.json
+
+# Browser sessions (contain auth cookies — never commit)
+watchers/sessions/
+whatsapp_session/
+
+# Gmail OAuth token
+watchers/credentials/token.json
+watchers/credentials/gmail_credentials.json
+watchers/.gmail_processed_ids.json
+watchers/.linkedin_processed_ids.json
+
+# Logs
+logs/
+watchers/logs/
+
+# Screenshots (audit proofs, large files)
+AI_Employee_Vault/Logs/screenshots/
+
+# Temporary files
+*.tmp
+*.bak
