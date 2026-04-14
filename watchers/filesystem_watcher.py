@@ -22,14 +22,31 @@ class InboxHandler(FileSystemEventHandler):
         super().__init__()
         self.watcher = watcher
 
+    # Windows system / temp files to always ignore
+    _SKIP_NAMES = {"desktop.ini", "thumbs.db", "thumbs.db:encryptable"}
+    _SKIP_PREFIXES = (".", "~", "$", "~$")
+
     def on_created(self, event):
         if event.is_directory:
             return
 
         source = Path(event.src_path)
 
-        # Skip hidden files and temp files
-        if source.name.startswith(".") or source.name.startswith("~"):
+        # Skip hidden, temp, and Windows system files
+        name_lower = source.name.lower()
+        if (
+            name_lower in self._SKIP_NAMES
+            or any(source.name.startswith(p) for p in self._SKIP_PREFIXES)
+        ):
+            return
+
+        # Wait briefly for the file to be fully written (race condition guard)
+        for _ in range(5):
+            if source.exists() and source.stat().st_size >= 0:
+                break
+            time.sleep(0.2)
+        else:
+            self.watcher.logger.debug(f"File disappeared before processing: {source.name}")
             return
 
         self.watcher.logger.info(f"New file detected: {source.name}")
@@ -70,6 +87,9 @@ class FileSystemWatcher(BaseWatcher):
         # Copy the original file to Needs_Action
         dest_file = self.needs_action / f"FILE_{source.name}"
         if not dest_file.exists():
+            if not source.exists():
+                self.logger.warning(f"Source file gone before copy: {source.name}")
+                return dest_file
             shutil.copy2(source, dest_file)
 
         # Create metadata markdown file

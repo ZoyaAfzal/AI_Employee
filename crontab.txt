@@ -1,0 +1,52 @@
+# ═══════════════════════════════════════════════════════════════════════
+# AI Employee — Cron Schedule (Silver Tier)
+#
+# Install:  crontab crontab.txt
+# View:     crontab -l
+# Edit:     crontab -e
+#
+# WSL setup (run once):
+#   sudo apt-get install cron -y
+#   sudo service cron start
+#   echo -e "[boot]\ncommand = service cron start" | sudo tee -a /etc/wsl.conf
+#
+# Replace AI_EMPLOYEE_DIR with your actual path.
+# ═══════════════════════════════════════════════════════════════════════
+
+AI_EMPLOYEE_DIR=/mnt/c/Users/Admin/OneDrive/Desktop/AI_Employee
+VAULT_PATH=/mnt/c/Users/Admin/OneDrive/Desktop/AI_Employee/AI_Employee_Vault
+CLAUDE=claude
+
+# ── Core Orchestrator ─────────────────────────────────────────────────
+# Start orchestrator on system boot (runs all watchers + scheduler)
+@reboot cd $AI_EMPLOYEE_DIR/watchers && python main.py >> $AI_EMPLOYEE_DIR/logs/orchestrator.log 2>&1
+
+# ── Safety Net: restart orchestrator if not running (every 5 min) ─────
+*/5 * * * * pgrep -f "orchestrator.py" > /dev/null || (cd $AI_EMPLOYEE_DIR/watchers && python main.py >> $AI_EMPLOYEE_DIR/logs/orchestrator.log 2>&1 &)
+
+# ── Daily Briefing — every day at 8:00 AM ─────────────────────────────
+0 8 * * * cd $AI_EMPLOYEE_DIR && $CLAUDE --print "Use the vault-manager skill to generate today's daily briefing. Summarise: pending Needs_Action items, items in Pending_Approval, and recent Done items. Save to AI_Employee_Vault/Briefings/DAILY_$(date +\%Y-\%m-\%d).md and update Dashboard.md." >> $AI_EMPLOYEE_DIR/logs/cron.log 2>&1
+
+# ── Weekly CEO Briefing — every Monday at 7:00 AM ─────────────────────
+0 7 * * 1 cd $AI_EMPLOYEE_DIR && $CLAUDE --print "Generate the Monday Morning CEO Briefing. Read AI_Employee_Vault/Business_Goals.md, Done/ folder (past 7 days), and Logs/. Include: Revenue, Completed Tasks, Bottlenecks, Proactive Suggestions. Save to AI_Employee_Vault/Briefings/$(date +\%Y-\%m-\%d)_Monday_Briefing.md and update Dashboard.md." >> $AI_EMPLOYEE_DIR/logs/cron.log 2>&1
+
+# ── Process Needs_Action — every 30 min during business hours ─────────
+*/30 8-20 * * * cd $AI_EMPLOYEE_DIR && $CLAUDE --print "Use the vault-manager skill to process any pending files in AI_Employee_Vault/Needs_Action/. For multi-step tasks use plan-creator. Update Dashboard.md after processing." >> $AI_EMPLOYEE_DIR/logs/cron.log 2>&1
+
+# ── Check Approvals — every 15 min ────────────────────────────────────
+*/15 * * * * cd $AI_EMPLOYEE_DIR && $CLAUDE --print "Use the approval-workflow skill to check AI_Employee_Vault/Approved/ and AI_Employee_Vault/Rejected/ for any new decisions and trigger the appropriate follow-up actions. Update Dashboard.md." >> $AI_EMPLOYEE_DIR/logs/cron.log 2>&1
+
+# ── LinkedIn Posting — Tue and Thu at 9:00 AM ─────────────────────────
+0 9 * * 2,4 cd $AI_EMPLOYEE_DIR && $CLAUDE --print "Use the linkedin-poster skill to check AI_Employee_Vault/Approved/ for any pre-approved LINKEDIN_*.md posts and publish them to LinkedIn. Log results and update Dashboard.md." >> $AI_EMPLOYEE_DIR/logs/cron.log 2>&1
+
+# ── Gmail Watcher heartbeat check — every 10 min ──────────────────────
+*/10 * * * * pgrep -f "gmail_watcher.py" > /dev/null || (cd $AI_EMPLOYEE_DIR/watchers && python gmail_watcher.py >> $AI_EMPLOYEE_DIR/logs/gmail_watcher.log 2>&1 &)
+
+# ── LinkedIn Watcher heartbeat check — every 10 min ───────────────────
+*/10 * * * * pgrep -f "linkedin_watcher.py" > /dev/null || (cd $AI_EMPLOYEE_DIR/watchers && python linkedin_watcher.py >> $AI_EMPLOYEE_DIR/logs/linkedin_watcher.log 2>&1 &)
+
+# ── Log rotation — every Sunday at midnight ───────────────────────────
+0 0 * * 0 mv $AI_EMPLOYEE_DIR/logs/cron.log $AI_EMPLOYEE_DIR/logs/cron_$(date +\%Y-\%m-\%d).log 2>/dev/null; touch $AI_EMPLOYEE_DIR/logs/cron.log
+
+# ── Expired approval cleanup — daily at 11:00 PM ─────────────────────
+0 23 * * * cd $AI_EMPLOYEE_DIR && $CLAUDE --print "Use the approval-workflow skill to check for expired approval requests (older than 24 hours) in AI_Employee_Vault/Pending_Approval/ and move them to /Rejected/ with an expiry note. Update Dashboard.md." >> $AI_EMPLOYEE_DIR/logs/cron.log 2>&1
