@@ -1,6 +1,7 @@
 ---
-last_updated: 2026-02-25
+last_updated: 2026-04-19
 review_frequency: monthly
+tier: gold
 ---
 
 # Company Handbook - Rules of Engagement
@@ -38,6 +39,12 @@ review_frequency: monthly
 | Payments | < $50 recurring | All new, > $100 |
 | File deletion | Never | Always |
 | Social media posts | Scheduled only | Replies, DMs |
+| Facebook posts | Scheduled, pre-approved | New topics, DM replies |
+| Instagram posts | Scheduled, pre-approved | All posts require approval |
+| Odoo invoice (draft) | Always | Never (drafts are safe) |
+| Odoo invoice (post) | Never | Always — irreversible |
+| Odoo customer create | Always | Never |
+| CEO Briefing generate | Always (read-only) | Never |
 
 ## Error Handling
 - On transient errors: retry up to 3 times with exponential backoff
@@ -51,5 +58,33 @@ review_frequency: monthly
 - Weekly log review recommended
 - Monthly security audit required
 
+## Gold Tier Integrations
+
+### Facebook / Instagram Rules
+- Max 3 Facebook posts per day, 1 Instagram post per day
+- NEVER post confidential client information
+- NEVER reply to comments automatically — always create approval request
+- Flag comments containing: "price", "buy", "interested", "contact" as HIGH priority
+- Generate weekly social media summary every Sunday (auto)
+
+### Odoo Accounting Rules
+- Invoice drafts can be created automatically
+- Invoices can ONLY be posted (confirmed) after approval file is in /Approved/
+- NEVER delete Odoo records — cancel or archive instead
+- Monthly accounting summary generated automatically in CEO Briefing
+- Source of truth for all revenue/expense data: Odoo only
+
+### CEO Briefing Rules
+- Generated every Monday at 7 AM
+- Must include: Odoo revenue data, task completion stats, social media metrics
+- Saved to /Briefings/ for 90-day retention
+- Generated as read-only report — no actions triggered from briefing
+
+### Ralph Wiggum Loop Rules
+- Maximum 10 iterations per task
+- Financial operations EXCLUDED from auto-loop (too sensitive)
+- Loop state file: /tmp/ralph_state.json
+- Override: delete /tmp/ralph_state.json to stop any active loop
+
 ---
-*AI Employee Handbook v0.1 - Review monthly and update as needed*
+*AI Employee Handbook v0.2 (Gold Tier) - Review monthly and update as needed*

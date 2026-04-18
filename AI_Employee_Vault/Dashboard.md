@@ -1,23 +1,38 @@
 ---
-last_updated: 2026-04-14T15:35:00Z
+last_updated: 2026-04-19T00:00:00Z
 status: active
-version: 0.1
+version: 0.2-gold
+tier: gold
 ---
 
-# AI Employee Dashboard
+# AI Employee Dashboard (Gold Tier)
 
 ## System Status
-- **AI Employee**: Active
+- **AI Employee**: Active (Gold Tier)
 - **File Watcher**: Running
-- **Last Check**: 2026-04-14 15:35 UTC
+- **Gmail Watcher**: Running
+- **LinkedIn Watcher**: Running
+- **Facebook Watcher**: Configured (requires FB_PAGE_ID in .env)
+- **Odoo Accounting**: Configured (requires `docker compose up -d` in /odoo/)
+- **Last Check**: 2026-04-19 22:10 UTC
+
+## Gold Tier Integrations
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Odoo Community | Ready to start | `cd odoo && docker compose up -d` |
+| Odoo MCP Server | Configured | Set ODOO_PASSWORD in .env |
+| Facebook MCP | Configured | Set FB_PAGE_ID + FB_PAGE_ACCESS_TOKEN in .env |
+| Facebook Watcher | Configured | Auto-starts with orchestrator |
+| CEO Briefing | Scheduled | Every Sunday 8 PM → Monday briefing |
+| Ralph Wiggum Loop | Active | Stop hook configured |
 
 ## Pending Actions
 | Folder | Count |
 |--------|-------|
-| Inbox | 1 |
+| Inbox | 0 |
 | Needs Action | 0 |
-| Pending Approval | 1 |
-| Done | 183 |
+| Pending Approval | 3 |
+| Done | 192 |
 
 ## Alerts
 | Severity | Alert | Date |
@@ -39,6 +54,9 @@ version: 0.1
 ## Recent Activity
 | Timestamp | Action | Status |
 |-----------|--------|--------|
+| 2026-04-19 03:10 | Processed EMAIL_greeting_2026-04-18_22-10-57.md (msg 19da2a502c9eda8b) — "hello how are you doing?" from Zoya → approval request created, file archived to /Done | Pending Approval |
+| 2026-04-19 22:10 | Vault check: EMAIL_greeting_2026-04-18_22-10-57.md already processed in prior run — approval APPROVAL_reply_greeting_2026-04-19_22-02.md awaiting decision. Needs_Action is clear. | Complete |
+| 2026-04-19 00:00 | Processed 8 Needs_Action emails: 7 LinkedIn digests/job alerts (noreply, no reply needed) archived to /Done; 1 greeting from Zoya (msg 19da29e019f88284) → approval request created | Complete |
 | 2026-04-14 15:35 | Sent approved reply to Zoya "greeting" (msg 19d8c9423116b420) — Gmail sent ID: 19d8c9711b814b83 | Complete |
 | 2026-04-14 15:30 | Processed greeting email from Zoya (msg 19d8c9423116b420) — reply drafted, awaiting approval | Complete |
 | 2026-04-14 20:50 | Processed Google Cloud credential security advisory (noreply, no reply possible) — flagged HIGH, archived to /Done. Action needed: review Google Cloud Console credentials | Complete |
@@ -77,6 +95,8 @@ version: 0.1
 ## Pending Approvals
 | File | Action | Created |
 |------|--------|---------|
+| APPROVAL_reply_greeting_2026-04-19_03-10.md | Reply to Zoya's "hello how are you doing?" greeting (msg 19da2a502c9eda8b) | 2026-04-19 |
+| APPROVAL_reply_greeting_2026-04-19_22-02.md | Reply to Zoya's "Hello" greeting (msg 19da29e019f88284) | 2026-04-19 |
 | SECURITY_Google_Cloud_credentials_review_2026-04-14.md | Review Google Cloud credential security — no-reply advisory, action required in GCloud Console | 2026-04-14 |
 | APPROVAL_reply_greeting_hello_ai_employee_2026-04-14.md | Reply to Zoya's "Hello AI Employee" (msg 19d8ba91ee2c6b36) | 2026-04-14 |
 | EMAIL_reply_greeting_10-27_2026-04-14.md | Reply to Zoya's "hello agent" greeting (msg 19d8b86b3dc04d7c) | 2026-04-14 |
@@ -84,10 +104,10 @@ version: 0.1
 | INVOICE_test_invoice_2026-02-25.md | Process Invoice #001 ($500) | 2026-02-25 |
 
 ## Weekly Stats
-- **Tasks Completed**: 210
-- **Tasks Pending Approval**: 5
-- **Files in Inbox**: 1
-- **Emails Sent Today**: 3
+- **Tasks Completed**: 218
+- **Tasks Pending Approval**: 2
+- **Files in Inbox**: 0
+- **Emails Sent Today**: 0
 
 ---
-*Auto-updated by AI Employee v0.1 at 2026-04-14 15:30 UTC*
+*Auto-updated by AI Employee v0.1 at 2026-04-19 00:00 UTC*

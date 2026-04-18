@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python*)",
+      "Bash(docker*)",
+      "Bash(docker compose*)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(python3 ceo_briefing.py)",
+      "Bash(python3 facebook_watcher.py)",
+      "Bash(python3 orchestrator.py)",
+      "mcp__odoo__*",
+      "mcp__facebook__*",
+      "mcp__gmail__*",
+      "mcp__vault__*"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /mnt/c/Users/Admin'/OneDrive/Desktop/AI_Employee/.claude/hooks/stop.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
