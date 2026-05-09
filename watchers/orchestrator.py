@@ -55,6 +55,8 @@ DRY_RUN = os.getenv("LOG_ONLY", "false").lower() == "true"
 ENABLE_GMAIL = os.getenv("ENABLE_GMAIL", "true").lower() == "true"
 ENABLE_LINKEDIN = os.getenv("ENABLE_LINKEDIN", "true").lower() == "true"
 ENABLE_FILESYSTEM = os.getenv("ENABLE_FILESYSTEM", "true").lower() == "true"
+# Gold Tier
+ENABLE_FACEBOOK = os.getenv("ENABLE_FACEBOOK", "true").lower() == "true"
 
 APPROVAL_POLL_INTERVAL = 30   # seconds — how often to check /Approved and /Rejected
 SCHEDULE_POLL_INTERVAL = 60   # seconds — how often to check scheduled tasks
@@ -292,6 +294,10 @@ class ApprovalMonitor:
                 self._handle_email_approval(f)
             elif f.name.startswith("LINKEDIN_"):
                 self._handle_linkedin_approval(f)
+            elif f.name.startswith("FACEBOOK_"):
+                self._handle_facebook_approval(f)
+            elif f.name.startswith("ODOO_"):
+                self._handle_odoo_approval(f)
             elif f.name.startswith("PAYMENT_"):
                 self._handle_payment_approval(f)
             else:
@@ -360,6 +366,33 @@ class ApprovalMonitor:
                 f"After posting, move the file to {vault}\\Done\\ and update {vault}\\Dashboard.md"
             ),
             task_name=f"linkedin_{approval_file.stem}",
+        )
+
+    def _handle_facebook_approval(self, approval_file: Path):
+        """Delegate Facebook/Instagram posting to the agent."""
+        from agent_runner import run_agent_task
+        vault = str(VAULT_PATH)
+        run_agent_task(
+            prompt=(
+                f"Use the facebook-poster skill to post the content from "
+                f"{vault}\\Approved\\{approval_file.name} to Facebook/Instagram.\n"
+                f"After posting, move the file to {vault}\\Done\\ and update {vault}\\Dashboard.md"
+            ),
+            task_name=f"facebook_{approval_file.stem}",
+        )
+
+    def _handle_odoo_approval(self, approval_file: Path):
+        """Execute approved Odoo actions (post invoices, etc.)."""
+        from agent_runner import run_agent_task
+        vault = str(VAULT_PATH)
+        run_agent_task(
+            prompt=(
+                f"An Odoo action was approved. Read {vault}\\Approved\\{approval_file.name}\n"
+                "Use the odoo-integration skill to execute the approved action.\n"
+                "Common actions: post invoice (odoo_post_invoice), create customer, etc.\n"
+                f"After completion, move the file to {vault}\\Done\\ and update {vault}\\Dashboard.md"
+            ),
+            task_name=f"odoo_{approval_file.stem}",
         )
 
     def _handle_payment_approval(self, approval_file: Path):
@@ -508,25 +541,42 @@ def run_daily_briefing(schedule: ScheduleState):
 
 
 def run_weekly_ceo_briefing(schedule: ScheduleState):
-    """Generate Monday morning CEO briefing."""
+    """Generate Monday morning CEO briefing using ceo_briefing.py (Gold Tier)."""
     now = datetime.now()
     if now.weekday() != 0 or now.hour != 7:
         return
     if not schedule.should_run("weekly_ceo_briefing", timedelta(days=6)):
         return
 
+    # Gold Tier: use the dedicated ceo_briefing.py script (includes Odoo data)
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["python3", str(WATCHERS_DIR / "ceo_briefing.py")],
+            capture_output=True, text=True, timeout=300,
+            cwd=str(WATCHERS_DIR),
+        )
+        if result.returncode == 0:
+            logger.info(f"CEO Briefing (Gold): {result.stdout.strip()}")
+            schedule.mark_ran("weekly_ceo_briefing")
+            return
+        logger.warning(f"ceo_briefing.py failed ({result.returncode}): {result.stderr[:200]} — falling back to agent")
+    except Exception as e:
+        logger.warning(f"ceo_briefing.py error: {e} — falling back to agent")
+
     from agent_runner import run_agent_task
     today = now.strftime("%Y-%m-%d")
     vault = str(VAULT_PATH)
     result = run_agent_task(
         prompt=(
-            "Generate the Monday Morning CEO Briefing.\n\n"
-            f"1. List files in {vault}\\Done\\ to see tasks completed this week.\n"
-            f"2. Read {vault}\\Business_Goals.md if it exists.\n"
-            f"3. Read recent log files in {vault}\\Logs\\\n"
-            f"4. Write the briefing to {vault}\\Briefings\\{today}_Monday_Briefing.md\n"
-            "   Include sections: Revenue, Completed Tasks, Bottlenecks, Proactive Suggestions.\n"
-            f"5. Update {vault}\\Dashboard.md with a briefing summary."
+            "Generate the Monday Morning CEO Briefing using the ceo-briefing skill.\n\n"
+            f"1. Use odoo_get_accounting_summary to get this month's revenue data.\n"
+            f"2. Count completed tasks in {vault}\\Done\\ (files modified in last 7 days).\n"
+            f"3. Read {vault}\\Business_Goals.md if it exists.\n"
+            f"4. Get social media summary via fb_generate_summary tool.\n"
+            f"5. Write the briefing to {vault}\\Briefings\\{today}_Monday_CEO_Briefing.md\n"
+            "   Sections: Executive Summary, Revenue (from Odoo), Tasks, Social Media, Suggestions.\n"
+            f"6. Update {vault}\\Dashboard.md with a briefing summary."
         ),
         task_name="weekly_ceo_briefing",
     )
@@ -562,6 +612,86 @@ def run_linkedin_posting(schedule: ScheduleState):
     )
     if result is not None:
         schedule.mark_ran("linkedin_post")
+
+
+# ── Gold Tier scheduled tasks ──────────────────────────────────────────────────
+
+def run_facebook_posting(schedule: ScheduleState):
+    """Post to Facebook on Mon/Wed/Fri at 10 AM if an approved post exists."""
+    now = datetime.now()
+    if now.weekday() not in (0, 2, 4) or now.hour != 10:
+        return
+    if not schedule.should_run("facebook_post", timedelta(hours=23)):
+        return
+
+    approved_dir = VAULT_PATH / "Approved"
+    approved_posts = list(approved_dir.glob("FACEBOOK_*.md")) if approved_dir.exists() else []
+    if not approved_posts:
+        logger.info("No approved Facebook posts found for scheduled posting")
+        return
+
+    from agent_runner import run_agent_task
+    vault = str(VAULT_PATH)
+    result = run_agent_task(
+        prompt=(
+            "Use the facebook-poster skill to post all approved Facebook content.\n"
+            f"1. Read each FACEBOOK_*.md file in {vault}\\Approved\\\n"
+            "2. Post to the Facebook Page using the facebook-poster skill (fb_post_to_page tool).\n"
+            "3. If an Instagram post is indicated, also post to Instagram.\n"
+            f"4. Move each posted file from {vault}\\Approved\\ to {vault}\\Done\\\n"
+            f"5. Update {vault}\\Dashboard.md to note the activity."
+        ),
+        task_name="facebook_post",
+    )
+    if result is not None:
+        schedule.mark_ran("facebook_post")
+
+
+def run_social_media_summary(schedule: ScheduleState):
+    """Generate a weekly social media summary every Sunday at 7 PM."""
+    now = datetime.now()
+    if now.weekday() != 6 or now.hour != 19:
+        return
+    if not schedule.should_run("social_media_summary", timedelta(days=6)):
+        return
+
+    from agent_runner import run_agent_task
+    vault = str(VAULT_PATH)
+    result = run_agent_task(
+        prompt=(
+            "Use the facebook-poster skill to generate a weekly social media summary.\n"
+            "Call the fb_generate_summary tool with period_days=7 and save_to_vault=true.\n"
+            f"Save the report to {vault}\\Briefings\\\n"
+            f"Update {vault}\\Dashboard.md with the social media stats."
+        ),
+        task_name="social_media_summary",
+    )
+    if result is not None:
+        schedule.mark_ran("social_media_summary")
+
+
+def run_weekly_odoo_audit(schedule: ScheduleState):
+    """Run weekly Odoo accounting audit every Sunday at 8 PM."""
+    now = datetime.now()
+    if now.weekday() != 6 or now.hour != 20:
+        return
+    if not schedule.should_run("weekly_odoo_audit", timedelta(days=6)):
+        return
+
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["python3", str(WATCHERS_DIR / "ceo_briefing.py")],
+            capture_output=True, text=True, timeout=300,
+            cwd=str(WATCHERS_DIR),
+        )
+        if result.returncode == 0:
+            logger.info(f"CEO Briefing generated: {result.stdout.strip()}")
+            schedule.mark_ran("weekly_odoo_audit")
+        else:
+            logger.error(f"CEO Briefing failed: {result.stderr[:500]}")
+    except Exception as e:
+        logger.error(f"Weekly Odoo audit failed: {e}")
 
 
 # ── email approval file parser ─────────────────────────────────────────────────
@@ -722,11 +852,26 @@ class Orchestrator:
             except Exception as e:
                 logger.warning(f"Could not start LinkedInWatcher: {e}")
 
+        # Gold Tier: Facebook watcher
+        if ENABLE_FACEBOOK:
+            try:
+                from facebook_watcher import FacebookWatcher
+                t = WatcherThread("FacebookWatcher", FacebookWatcher, str(VAULT_PATH))
+                self.watcher_threads.append(t)
+                t.start()
+            except ImportError:
+                logger.warning("facebook_watcher.py not found — skipping Facebook watcher")
+            except Exception as e:
+                logger.warning(f"Could not start FacebookWatcher: {e}")
+
     def run_scheduled_tasks(self):
         run_daily_briefing(self.schedule)
         run_weekly_ceo_briefing(self.schedule)
         run_linkedin_posting(self.schedule)
-        run_process_needs_action(self.schedule)   # periodic fallback (5-min)
+        run_facebook_posting(self.schedule)        # Gold Tier
+        run_social_media_summary(self.schedule)    # Gold Tier
+        run_weekly_odoo_audit(self.schedule)       # Gold Tier
+        run_process_needs_action(self.schedule)    # periodic fallback (5-min)
 
     def watchdog(self):
         for wt in self.watcher_threads:

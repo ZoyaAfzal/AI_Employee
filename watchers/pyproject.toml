@@ -1,7 +1,7 @@
 [project]
 name = "ai-employee"
-version = "0.2.0"
-description = "AI Employee — Silver Tier: Gmail + LinkedIn + Orchestrator"
+version = "0.3.0"
+description = "AI Employee — Gold Tier: Gmail + LinkedIn + Facebook + Odoo + CEO Briefing"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -23,12 +23,18 @@ dependencies = [
     # Utilities
     "python-dotenv>=1.0.0",
     "requests>=2.31.0",
+
+    # Gold tier — Facebook Graph API (uses requests, already listed above)
+    # Gold tier — Odoo JSON-RPC (uses requests, already listed above)
+    # Note: Docker required separately for Odoo (not a Python package)
 ]
 
 [project.scripts]
 ai-employee = "main:main"
 gmail-auth = "gmail_auth:main"
 orchestrator = "orchestrator:main"
+facebook-watcher = "facebook_watcher:main"
+ceo-briefing = "ceo_briefing:generate_briefing"
 
 [build-system]
 requires = ["hatchling"]
