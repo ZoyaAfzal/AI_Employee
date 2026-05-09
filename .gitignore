@@ -55,6 +55,17 @@ watchers/logs/
 # Screenshots (audit proofs, large files)
 AI_Employee_Vault/Logs/screenshots/
 
+# Odoo — config has db_password, use odoo.conf.example as template
+odoo/odoo.conf
+odoo/.env
+
+# Watcher duplicate vault (created at runtime, not source)
+watchers/AI_Employee_Vault/
+
+# Junk / utility files
+get-pip.py
+mkdir
+
 # Temporary files
 *.tmp
 *.bak

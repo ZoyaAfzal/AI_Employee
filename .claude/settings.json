@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /mnt/c/Users/Admin'/OneDrive/Desktop/AI_Employee/.claude/hooks/stop.sh"
+            "command": "bash \"/mnt/c/Users/Admin'/OneDrive/Desktop/AI_Employee/.claude/hooks/stop.sh\""
           }
         ]
       }
